@@ -8,7 +8,7 @@ navbar:
     - text: "About"
       href: about.html
     - text: "Final Project"
-      href: dashboad.html
+      href: dashboard.html
     - text: "Assignment"
       menu:
         - text: "Statistic Visualization (A5)"
