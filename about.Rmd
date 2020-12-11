@@ -2,4 +2,4 @@
 title: "About This Website"
 ---
 
-More about this website.
+### This website includes many visualizations of my assignments and final project of Georgetown ANLY 503.

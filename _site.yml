@@ -1,9 +1,35 @@
 name: "my-website"
 output_dir: "docs"
 navbar:
-  title: "My Website"
+  title: "ANLY503"
   left:
     - text: "Home"
       href: index.html
     - text: "About"
       href: about.html
+    - text: "Final Project"
+      href: dashboad.html
+    - text: "Assignment"
+      menu:
+        - text: "Statistic Visualization (A5)"
+          href: task1.html
+        - text: "Geospatial Visualization (A6)"
+          href: geospatial.html
+        - text: "Network Visualization (A7)"
+          href: networks.html
+          
+  right:
+    - icon: fa-github fa-lg
+      href: https://lyc96103.github.io/ANLY503_Portfolio/
+
+output:
+  html_document:
+    self_contained: false
+    theme: cosmo
+    highlight: textmate
+    mathjax: null
+    lib_dir: libs
+    css: styles.css
+    toc_depth: 3
+    toc_float:
+      collapsed: false

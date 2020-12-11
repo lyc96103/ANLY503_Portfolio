@@ -1,0 +1,79 @@
+---
+title: "Networks"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(igraph)
+library(circlize)
+library(RColorBrewer)
+```
+
+
+```{r, include=FALSE}
+state <- readxl::read_excel('~/Desktop/503 Vis/A7/State_to_State_Migrations_Table_2018.xls')[c(6:43,48:78),]
+```
+
+```{r, include=FALSE}
+state <- state[,10:ncol(state)] 
+state <- transpose(state)
+
+state <- state[,colSums(is.na(state)) < nrow(state)]
+state <- as.data.frame(state)
+target <- state[3,]
+state1 <- filter(state, V2 != "MOE")
+state1 <- rbind(target, state1)
+
+header.true <- function(state) {
+  names(state) <- as.character(unlist(state[1,]))
+  state[-1,]
+}
+
+state1 <- header.true(state1)
+state1 <- state1[,-2]
+names(state1)[1] <- "source"
+state1 <- state1[, !(colnames(state1) %in% c("Footnotes:","United States2"))]
+```
+
+```{r, include=FALSE}
+state2 <- state1 %>% 
+  filter(source %in% c('Texas','New York','Ohio','Virginia')) %>%
+  gather(target, count, -source) %>%
+  filter(!is.na(count))
+
+state2$count <- as.numeric(as.character(state2$count))
+```
+
+```{r, include=FALSE}
+links <- state2 %>% 
+  group_by(source) %>%
+  slice_max(order_by = count, n = 10)
+
+links[links$source == 'Texas',]
+```
+
+### In this assignment, we visualize the flow of people between different states in the United States over the period of one year, using network graphs.
+
+
+
+
+
+```{r, echo=FALSE}
+net <- graph_from_data_frame(d = links, vertices = unique(c(links$source, links$target)), directed = T)
+
+chordDiagram(links, annotationTrack = "grid", preAllocateTracks = list(track.height = 0.1))
+  circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+  col = rand_color(50,luminosity = "bright")
+  xlim = get.cell.meta.data("xlim")
+  xplot = get.cell.meta.data("xplot")
+  ylim = get.cell.meta.data("ylim")
+  sector.name = get.cell.meta.data("sector.index")
+  circos.text(mean(xlim), ylim[1], sector.name, facing = "clockwise",
+                niceFacing = TRUE, adj = c(0, 0.5), cex = 0.5)
+}, bg.border = NA)
+ 
+title("Migration Pattern 2018", cex = 0.1)
+```

@@ -1,0 +1,148 @@
+---
+title: "Statistic"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(ggpubr)
+library(tidyverse)
+library(dplyr)
+```
+
+```{r, echo=FALSE}
+accounts <- read.csv("~/Desktop/503 Vis/A5/data/accounts_analytical.csv")
+```
+### Explore all accounts. Visualizations that combine or these account characteristics: 1. Whether an account has a credit card or not 2. Whether an account has a loan or not 3. The average balance for the account
+```{r, echo=FALSE}
+accounts[is.na(accounts)] <- 0
+accounts$credit <- accounts$credit_cards!= 0
+credit <- ggplot(accounts, aes(x=credit, fill=credit)) +
+  geom_bar() + 
+  ggtitle('Whether has a Credit Card')
+
+accounts$loan <- accounts$loan_amount != 0
+loan <- ggplot(accounts, aes(x=loan, fill=loan)) +
+  geom_bar() + 
+  ggtitle('Whether has a Loan')
+
+accounts$average_balance <- rowMeans(accounts[,c('max_balance', 'min_balance')], na.rm=TRUE)
+balance <- ggplot(accounts, aes(x=average_balance)) +
+  geom_histogram(binwidth = 25)+
+  ggtitle('The Distribution of Average Balance')
+
+figure <- ggarrange(balance, ggarrange(
+  loan, credit, ncol = 2), nrow = 2)
+figure
+```
+
+### The distribution of all loans and what are their characteristics.
+#### From the distribution of loans, we can find that the loans don't default are much more than default. And more loans are in current status.
+```{r, echo=FALSE}
+accounts <- read.csv("~/Desktop/503 Vis/A5/data/accounts_analytical.csv")
+```
+
+```{r, echo=FALSE}
+accounts1 <- accounts %>%
+          filter(!is.na(loan_amount))
+ggplot(accounts1, aes(x=loan_amount,fill=loan_status)) +
+  geom_histogram(bins = 30)+
+  facet_wrap(~loan_default) +
+  theme_bw() +
+  ggtitle("Distribution of Loan_amount with Loan_status and Loan_default") +
+  xlab("Loan_amount") +
+  ylab("Count")
+```
+
+
+### The relationship between a good or bad loan and the time between an account is opened an the loan is created. The specific set of accounts that seem to be at higher or lower risk of defaulting.
+
+
+```{r, include=FALSE}
+accounts <- read_csv("~/Desktop/503 Vis/A5/data/accounts_analytical.csv")
+accounts1 <- accounts %>%
+  filter(!is.na(loan_amount)) %>%
+  mutate(timediff = loan_date - acct_creation_date)
+```
+
+
+```{r, echo=FALSE}
+ggplot(accounts1, aes(x=loan_default, y=timediff, color = loan_default)) +
+  geom_boxplot(width=0.5, show.legend = FALSE) +
+  xlab("Loan default") +
+  ylab("Time Difference") +
+  ggtitle("Boxplot of time difference and loan default")
+```
+
+#### From the above box plot, we can find that when there is longer time between an account is opened an the loan is created, the average default rate is lower, which means good loans overall have longer time difference.
+
+```{r, include=FALSE}
+p2 <- ggplot(accounts1, aes(x=loan_default, y=loan_amount)) +
+  geom_boxplot(width=0.5, show.legend = FALSE, fill =  '#ff6699') +
+  xlab("Loan Default") +
+  ylab("Loan Amount") +
+  ggtitle("Loan Amount v.s. Loan Default") 
+```
+
+```{r, include=FALSE}
+p3 <- ggplot(accounts1, aes(x=loan_default, y=loan_payment)) +
+  geom_boxplot(width=0.5, show.legend = FALSE, fill =  '#66cc99')+
+  ggtitle("Loan Payment v.s. Loan Default") +
+  xlab("Loan Default") +
+  ylab("Loan Payment")
+```
+
+```{r, echo=FALSE}
+figure <- ggarrange(p2, p3, ncol=2)
+figure
+```
+
+#### From the left box plot, we can conclude that account with higher loan aomunt is more likely to default.
+#### From the right plot above, people with higher loan payment is  more likely to default.
+
+
+
+
+
+
+
+### For the account with the highest number of transactions, make a time series line plot for the behavior of the account over time, including all debits and credits, the different methods, and the with the different categories.
+
+```{r, include=FALSE}
+accounts <- read_csv("~/Desktop/503 Vis/A5/data/accounts_analytical.csv")
+transactions <- read_csv("~/Desktop/503 Vis/A5/data/transactions.csv")
+```
+
+```{r, include=FALSE}
+ID <- as.data.frame(table(transactions$account_id))
+ID[which(ID$Freq == max(ID$Freq)),]
+transactions1 <- transactions %>%
+  filter(account_id == 8261)
+```
+
+```{r, echo=FALSE}
+ggplot(transactions1, aes(x=date, y=amount)) +
+  geom_line() +
+  facet_wrap(~type) +
+  xlab("Date") +
+  ylab("Amount") +
+  ggtitle("Time Series Plot of the Account for Debits and Credits")
+```
+
+```{r, echo=FALSE}
+ggplot(transactions1, aes(x=date, y=amount)) +
+  geom_line() +
+  facet_wrap(~method) +
+  xlab("Date") +
+  ylab("Amount") +
+  ggtitle("Time Series Plot of the Account for Different Methods")
+```
+
+```{r, echo=FALSE}
+ggplot(transactions1, aes(x=date, y=amount)) +
+  geom_line() +
+  facet_wrap(~category) +
+  xlab("Date") +
+  ylab("Amount") +
+  ggtitle("Time Series Plot of the Account for Different Categories")
+```

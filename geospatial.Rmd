@@ -1,0 +1,41 @@
+---
+title: "Geospatial"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(sf)
+library(readxl)
+library(spData)
+library(sp)
+library(gridExtra)
+library(ggpubr)
+library(jpeg)
+```
+
+### In this assignment, we will visualize historical US election data and unemployment rates across US counties using choropleths.
+
+
+
+### Taxes
+```{r, echo=FALSE}
+knitr::include_graphics("TX.jpeg")
+```
+
+### California
+
+```{r, echo=FALSE}
+knitr::include_graphics("CA.jpeg")
+```
+
+### Pennsylvania
+
+```{r, echo=FALSE}
+knitr::include_graphics("PA.jpeg")
+```
+
+
+
+
+

@@ -1,0 +1,248 @@
+---
+title: "US Shooting Visualization Analysis"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    social: menu
+---
+
+```{r setup, include=FALSE}
+library("flexdashboard")
+library("dplyr")
+library("tidyr")
+library("ggplot2")
+library("ggthemes")
+library("tm")
+library("SnowballC")
+library("wordcloud")
+library("RColorBrewer")
+library("lubridate")
+library("scales")
+library("networkD3")
+library("usmap")
+```
+
+EDA
+=======================================================================
+Inputs {.sidebar}
+-------------------------------------
+Chart 1 (Top left): This pie chart shows the proportion of shooting incidents by gender. We can find that male is 95.5% and female is 4.5%. 
+
+Chart 2 (Top right): This pie chart presents the proportion of shooting incidents by race. We can find that half of people are White, more than Black. 
+
+Chart 3 (Bottom left): This graph shows the distribution of age for different races. White has highest average age, and also has youngest and oldest people. 
+
+Chart 4 (Bottom right): This graph presents the top 10 amount of shooting incidents states, they rank in decreasing order. California, Taxes and Florida are three highest states.
+
+
+Row 
+-----------------------------------------------------------------------
+
+### The Gender Distribution
+```{r}
+shooting <- read.csv("~/Desktop/503 Vis/dashboad/shootings.csv")
+gender <- shooting %>%
+  group_by(gender) %>%
+  summarise(count = n())
+
+blank_theme <- theme_minimal() +
+  theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.border = element_blank(),
+  panel.grid = element_blank(),
+  axis.ticks = element_blank(),
+  plot.title=element_text(size=14, face="bold")
+  )
+
+ggplot(gender, aes(x = "", y = count, fill = gender)) + 
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start = 0) + 
+  blank_theme +
+  theme(axis.text.x = element_blank()) +
+  geom_text(aes(y = count/2 + c(0, cumsum(count)[-length(count)]), 
+                label = percent(count/4895)), size = 4) 
+```
+
+### The Race Distribution
+
+```{r}
+race <- shooting %>%
+  group_by(race) %>%
+  summarise(count = n())
+
+ggplot(race, aes(x = "", y = count, fill = race)) + 
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start = 0) + 
+  blank_theme +
+  theme(axis.text.x = element_blank()) 
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### The Distribution of Age for Different Races
+```{r}
+ggplot(shooting, aes(x = race, y = age, fill = race)) +
+  geom_boxplot() +
+  blank_theme
+```
+
+### The top 10 Shooting Incidents State
+```{r}
+state <- shooting %>%
+  group_by(state) %>%
+  summarise(count = n()) 
+
+state <- transform(state, state = reorder(state, -count))
+
+myColors <- brewer.pal(6, "Set1")
+top_n(state, n=10, count) %>%
+  ggplot(., aes(x = state, y = count, fill = state)) +
+  geom_bar(stat = 'identity') +
+  scale_colour_manual(values=myColors) +
+  blank_theme
+```
+
+Geographical{data-navmenu="More Visualization" data-icon="fa-list"}
+=======================================================================
+Inputs {.sidebar}
+-------------------------------------
+From this map chart, we can notify that California has the most amount of shooting incidents. Taxes and Florida are following. It is necessary to consider state social circumstance and legalization of guns. Dangerous area more located at south.
+
+
+Row
+-------------------------------------
+### The Map of Incidents Density by State
+```{r}
+plot_usmap(data = state, values = "count", color = "red") + 
+  scale_fill_continuous(
+    low = "white", high = "red", name = "Incidents", label = scales::comma) + 
+  theme(legend.position = "right")
+```
+
+Network{data-navmenu="More Visualization" data-icon="fa-list"}
+=======================================================================
+Inputs {.sidebar}
+-------------------------------------
+Chart 1 (Left): From the network between states and race, we can see different states have different race distribution. California has most Hispanic while Florida has least Hispanic.
+
+Chart 2 (Right): From the network between states and arms category, we can find that the guns is biggest category for shooting incidents. And arms categories for different states are similar.
+
+
+Row
+-----------------------------------------------------------------------
+
+### Network between States and Race
+```{r}
+network1 = shooting %>% count(state, race, sort = TRUE)
+network1 = network1 %>% filter(
+  state == "CA" | state == "TX" | state == "FL"
+  )
+
+nodes <- data.frame(
+  name=c(as.character(network1$state), as.character(network1$race)) %>% 
+    unique()
+)
+
+network1$IDsource <- match(network1$state, nodes$name)-1 
+network1$IDtarget <- match(network1$race, nodes$name)-1
+
+graph1 <- sankeyNetwork(Links = network1, Nodes = nodes, Source = "IDsource", Target = "IDtarget", 
+              Value = "n", NodeID = "name", fontSize = 12, nodeWidth = 30, units = 'TWh', 
+              LinkGroup = 'state')
+
+graph1
+```
+
+### Network between States and Arms Category
+
+```{r}
+network2 = shooting %>% count(state, arms_category, sort = TRUE)
+network2 = network2 %>% filter(
+  state == "CA" | state == "TX" | state == "FL"
+  )
+
+nodes <- data.frame(
+  name=c(as.character(network2$state), as.character(network2$arms_category)) %>% 
+    unique()
+)
+
+network2$IDsource <- match(network2$state, nodes$name)-1 
+network2$IDtarget <- match(network2$arms_category, nodes$name)-1
+
+graph2 <- sankeyNetwork(Links = network2, Nodes = nodes, Source = "IDsource", Target = "IDtarget", 
+              Value = "n", NodeID = "name", fontSize = 12, nodeWidth = 30, units = 'TWh', 
+              LinkGroup = 'state')
+
+graph2
+```
+
+Time Series{data-navmenu="More Visualization" data-icon="fa-list"}
+=======================================================================
+Inputs {.sidebar}
+-------------------------------------
+From this chart, we can find that incidents happened randomly through different months. The average amount of shooting incidents is 80. There was a very low point at 07/2015, it was related to society circumstance.
+
+Row
+-------------------------------------
+
+### Time Series Plot of the Number of Incidents
+```{r}
+# Convert to date
+shooting$date <- as.Date(shooting$date, format="%Y-%m-%d")
+# Tabulate
+tab <- table(cut(shooting$date, 'month'))
+# Format
+data <- data.frame(Date=format(as.Date(names(tab)), '%m/%Y'), 
+                   Frequency=as.vector(tab))
+
+
+ggplot(data, aes(x = Date, y = Frequency, group = 1)) +
+  geom_line(color = "#20AFBB", size = 1) +
+  xlab("Date") +
+  ylab("Frequency") +
+  blank_theme +
+  scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 1*12)])
+```
+
+
+Text {data-navmenu="More Visualization" data-icon="fa-list"}
+=======================================================================
+Inputs {.sidebar}
+-------------------------------------
+From the wordcloud, we can find that Los Angles is the city with most shooting incidents; Phoenix and houston are the next. We also can find that these top cities are big cities with more populations, so that have more shooting incidents.
+
+Row
+-------------------------------------
+
+### Top 30 Incidents Cities
+```{r}
+# Remove white space
+shooting$City <- gsub(" ", "", shooting$city)
+shooting$City <- gsub("[.]", "", shooting$City)
+
+# Change to matrix
+text <- shooting$City
+docs <- Corpus(VectorSource(text))
+dtm <- TermDocumentMatrix(docs)
+m <- as.matrix(dtm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v), freq=v)
+
+# Create wordcloud
+set.seed(1234)
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words=30, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+About
+=======================================================================
+
+
+This dataset contains basic data about people's name, age, gender and race. Also including the date of event; where it happened; how they were shot; whether they attack; whether they holding weapons; if they show any mental illness; if the policeman wearing a camera/was the incident recorded; if the suspect flee? Apart from that, a category column holds type of weapon used by the suspect. Source: https://www.kaggle.com/ahsen1330/us-police-shootings
+
+The objectives of the visual analyses are to analyze the story around police shooting in America from different aspects, including race, gender, age, region and so on. 
+
+This project has accomplished by using R Markdown with flexdashboad-0.5.2 package.
